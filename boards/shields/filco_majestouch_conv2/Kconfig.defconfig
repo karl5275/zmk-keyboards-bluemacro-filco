@@ -1,0 +1,6 @@
+if SHIELD_FILCO_MAJESTOUCH_CONV2
+
+config ZMK_KEYBOARD_NAME
+    default "Filco Majestouch Convertible 2"
+
+endif
