@@ -20,6 +20,6 @@
 ---
 include:
   - board: bluemacro840_v1
-
+    shield: filco_majestouch_conv2
     snippet: studio-rpc-usb-uart
     cmake-args: -DCONFIG_ZMK_STUDIO=y
