@@ -19,7 +19,7 @@
         zmk,battery = &vbatt;
     };
 
-leds {
+leds: leds {
 		compatible = "gpio-leds";
 		status = "okay";
 		blue_led: led_0 {
