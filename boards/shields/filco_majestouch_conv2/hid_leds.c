@@ -1,12 +1,7 @@
 /*
- * Caps‑ and Num‑Lock indicator LEDs
- *  • LEDs follow host HID reports only while the active endpoint is USB
- *    and VBUS is powered.
- *  • When running on battery (BLE), both LEDs are forced OFF.
- *
+ * Caps‑ and Num‑Lock indicator LEDs (USB‑only version)
  * SPDX‑License‑Identifier: MIT
  */
-
 #include <zephyr/device.h>
 #include <zephyr/drivers/led.h>
 #include <zephyr/init.h>
@@ -18,9 +13,9 @@
 #include <zmk/usb.h>
 
 /* ──────────── Devicetree handles ────────────────────────────────────── */
-#define LEDS_NODE   DT_NODELABEL(leds)    /* requires “leds:” label in DTS */
-#define CAPS_ALIAS  DT_ALIAS(led_caps)
-#define NUM_ALIAS   DT_ALIAS(led_num)
+#define LEDS_NODE DT_NODELABEL(leds)
+#define CAPS_ALIAS DT_ALIAS(led_caps)
+#define NUM_ALIAS  DT_ALIAS(led_num)
 
 static const struct device *const led_dev = DEVICE_DT_GET(LEDS_NODE);
 
@@ -41,29 +36,23 @@ static inline void leds_off(void)
 #endif
 }
 
-/* ──────────── HID indicator event listener ──────────────────────────── */
+/* ──────────── HID indicator listener ────────────────────────────────── */
 static int hid_led_cb(const zmk_event_t *eh)
 {
-    if (!usb_active()) {      /* battery mode ➜ keep LEDs dark */
-        leds_off();
-        return 0;
-    }
+    if (!usb_active()) { leds_off(); return 0; }
 
     const zmk_hid_indicators_t ind =
         zmk_hid_indicators_get_current_profile();
 
 #if DT_NODE_EXISTS(CAPS_ALIAS)
-    if (ind & BIT(HID_USAGE_LED_CAPS_LOCK - 1))
-        led_on (led_dev, DT_NODE_CHILD_IDX(CAPS_ALIAS));
-    else
-        led_off(led_dev, DT_NODE_CHILD_IDX(CAPS_ALIAS));
+    (ind & BIT(HID_USAGE_LED_CAPS_LOCK - 1))
+        ? led_on (led_dev, DT_NODE_CHILD_IDX(CAPS_ALIAS))
+        : led_off(led_dev, DT_NODE_CHILD_IDX(CAPS_ALIAS));
 #endif
-
 #if DT_NODE_EXISTS(NUM_ALIAS)
-    if (ind & BIT(HID_USAGE_LED_NUM_LOCK - 1))
-        led_on (led_dev, DT_NODE_CHILD_IDX(NUM_ALIAS));
-    else
-        led_off(led_dev, DT_NODE_CHILD_IDX(NUM_ALIAS));
+    (ind & BIT(HID_USAGE_LED_NUM_LOCK - 1))
+        ? led_on (led_dev, DT_NODE_CHILD_IDX(NUM_ALIAS))
+        : led_off(led_dev, DT_NODE_CHILD_IDX(NUM_ALIAS));
 #endif
     return 0;
 }
@@ -71,17 +60,15 @@ ZMK_LISTENER(hid_led_listener, hid_led_cb);
 ZMK_SUBSCRIPTION(hid_led_listener, zmk_hid_indicators_changed);
 
 /* ──────────── Endpoint change listener (USB ↔ BLE) ──────────────────── */
-static int endpoint_change_cb(const zmk_event_t *eh)
+static int usb_power_listener_cb(const zmk_event_t *eh)
 {
-    if (!usb_active()) {      /* leaving USB → blank LEDs */
-        leds_off();
-    }
+    if (!usb_active()) { leds_off(); }
     return 0;
 }
-ZMK_LISTENER(endpoint_listener, endpoint_change_cb);
-ZMK_SUBSCRIPTION(endpoint_listener, zmk_endpoint_changed);
+ZMK_LISTENER(usb_power_listener, usb_power_listener_cb);
+ZMK_SUBSCRIPTION(usb_power_listener, zmk_endpoint_changed);
 
-/* ──────────── Ensure LED device is ready at boot ─────────────────────── */
+/* ──────────── Ensure LED device ready ───────────────────────────────── */
 static int leds_init(void)
 {
     return device_is_ready(led_dev) ? 0 : -ENODEV;
