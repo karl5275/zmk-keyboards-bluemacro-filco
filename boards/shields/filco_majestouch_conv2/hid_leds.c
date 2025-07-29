@@ -28,7 +28,7 @@ static const struct device *const led_dev = DEVICE_DT_GET(LEDS_NODE);
 static inline bool usb_active(void)
 {
     struct zmk_endpoint_instance ep = zmk_endpoints_selected();
-    return ep.transport == ZMK_ENDPOINT_USB && zmk_usb_is_powered();
+    return ep.transport == ZMK_TRANSPORT_USB && zmk_usb_is_powered();
 }
 
 static inline void leds_off(void)
