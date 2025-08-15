@@ -1,12 +1,12 @@
 #include <physical_layouts.dtsi>
 
 / {
-    physical_layout0: physical_layout_0 {
+    layout_ansi: layout_ansi {
         compatible = "zmk,physical-layout";
         display-name = "Default";
 
         kscan = <&kscan0>;
-        transform = <&matrix_transform0>;
+        transform = <&default_transform>;
 
         keys  //                     w   h    x    y     rot    rx    ry
             = <&key_physical_attrs 100 100    0    0       0     0     0>
@@ -115,5 +115,14 @@
             , <&key_physical_attrs 200 100 1850  525       0     0     0>
             , <&key_physical_attrs 100 100 2050  525       0     0     0>
             ;
+    };
+    
+    position_map {
+        compatible = "zmk,physical-layout-position-map";
+
+        layout_ansi {
+            physical-layout = <&layout_ansi>;
+            positions = <>;
+        };
     };
 };
