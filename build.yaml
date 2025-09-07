@@ -23,6 +23,3 @@ include:
     shield: filco_majestouch_conv2
     snippet: studio-rpc-usb-uart
     cmake-args: -DCONFIG_ZMK_STUDIO=y
-  - board: bluemacro840_v1
-    shield: settings_reset
-    artifact-name: settings-reset-bluemacro840_v1
