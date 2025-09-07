@@ -23,11 +23,11 @@ leds: leds {
 		compatible = "gpio-leds";
 		status = "okay";
 		blue_led: led_0 {
-			gpios = <&gpio0 29 GPIO_ACTIVE_HIGH>;
+			gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>;
 			label = "Blue LED";
 		};
 		red_led: led_1 {
-			gpios = <&gpio0 31 GPIO_ACTIVE_HIGH>;
+			gpios = <&gpio1 13 GPIO_ACTIVE_HIGH>;
 			label = "Red LED";
 		};
 	};
@@ -36,12 +36,12 @@ leds: leds {
     EXT_POWER {
         compatible = "zmk,ext-power-generic";
         init-delay-ms = <20>;
-        control-gpios = <&gpio0 12 GPIO_ACTIVE_HIGH>;
+        control-gpios = <&gpio1 15 GPIO_ACTIVE_HIGH>;
     };
 
     vbatt: vbatt {
         compatible = "zmk,battery-voltage-divider";
-        io-channels = <&adc 7>;
+        io-channels = <&adc 0>;
         output-ohms = <2000000>;
         full-ohms = <(2000000 + 806000)>;
     };
