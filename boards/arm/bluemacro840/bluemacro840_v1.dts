@@ -51,10 +51,6 @@ leds: leds {
 
 &adc {
     status = "okay";
-    channel@0 {
-        reg = <0>;
-        zephyr,acquisition-time = <SAADC_ACQTIME_40US>;
-    };
 };
 
 &gpiote {
