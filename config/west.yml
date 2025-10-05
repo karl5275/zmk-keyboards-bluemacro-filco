@@ -9,7 +9,7 @@ manifest:
   projects:
     - name: zmk
       remote: karl5275
-      revision: main
+      revision: AAbatteries
       import: app/west.yml
   self:
     path: config
