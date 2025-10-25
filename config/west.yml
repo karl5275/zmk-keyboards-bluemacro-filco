@@ -2,14 +2,13 @@ manifest:
   defaults:
     revision: v0.3
   remotes:
-    - name: karl5275
-      url-base: https://github.com/karl5275
+    - name: zmkfirmware
+      url-base: https://github.com/zmkfirmware
     # Additional modules containing boards/shields/custom code can be listed here as well
     # See https://docs.zephyrproject.org/3.2.0/develop/west/manifest.html#projects
   projects:
     - name: zmk
-      remote: karl5275
-      revision: AAbatteries
+      remote: zmkfirmware
       import: app/west.yml
   self:
     path: config
