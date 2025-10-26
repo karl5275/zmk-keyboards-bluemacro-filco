@@ -137,7 +137,7 @@
 &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
 &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
 &trans  &none   &trans  &trans  &trans  &none   &trans  &trans  &trans  &trans  &trans  &trans  &trans
-&trans  &trans  &trans  &trans
+&dip1_gate  &trans  &trans  &trans
             >;
 
             label = "Dip 1";
