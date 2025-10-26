@@ -21,6 +21,31 @@
         };
     };
 
+    macros {
+        dip1_gate: dip1_gate {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&togg_on 6>, <&macro_pause_for_release>, <&togg_off 6>;
+
+            label = "DIP1_GATE";
+        };
+    };
+
+    behaviors {
+        togg_on: togg_on {
+            compatible = "zmk,behavior-toggle-layer";
+            label = "TOGG_ON";
+            #binding-cells = <1>;
+        };
+
+        togg_off: togg_off {
+            compatible = "zmk,behavior-toggle-layer";
+            label = "TOGG_OFF";
+            #binding-cells = <1>;
+            toggle-mode = "off";
+        };
+    };
+
     keymap {
         compatible = "zmk,keymap";
 
@@ -33,7 +58,7 @@
 &kp CAPS          &kp A         &kp S         &kp D      &kp F          &kp G          &kp H   &kp J              &kp K      &kp L     &kp SEMICOLON  &kp SINGLE_QUOTE  &kp ENTER          &kp KP_N4        &kp KP_N5       &kp KP_N6
 &kp LEFT_SHIFT    &kp Z         &kp X         &kp C      &kp V          &kp B          &kp N   &kp M              &kp COMMA  &kp DOT   &kp SLASH      &kp RIGHT_SHIFT   &kp UP             &kp KP_N1        &kp KP_N2       &kp KP_N3        &kp KP_ENTER
 &kp LEFT_CONTROL  &kp LEFT_GUI  &kp LEFT_ALT  &kp SPACE  &kp RIGHT_ALT  &kp RIGHT_GUI  &mo 1   &kp RIGHT_CONTROL  &kp LEFT   &kp DOWN  &kp RIGHT      &kp KP_N0         &kp KP_DOT
-&kp CAPS          &kp CAPS      &kp CAPS      &kp CAPS
+&dip1_gate        &trans        &trans        &trans
             >;
         };
 
@@ -46,7 +71,7 @@
 &kp CAPS          &kp A         &kp S         &kp D         &kp F          &kp G          &kp H         &kp J              &kp K      &kp L     &kp SEMICOLON  &kp SINGLE_QUOTE  &kp ENTER          &kp KP_N4        &kp KP_N5       &kp KP_N6
 &kp LEFT_SHIFT    &kp Z         &kp X         &kp C         &kp V          &kp B          &kp N         &kp M              &kp COMMA  &kp DOT   &kp SLASH      &kp RIGHT_SHIFT   &kp UP             &kp KP_N1        &kp KP_N2       &kp KP_N3        &kp KP_ENTER
 &kp LEFT_CONTROL  &kp LEFT_GUI  &kp LEFT_ALT  &kp SPACE     &kp RIGHT_ALT  &kp RIGHT_GUI  &trans        &kp RIGHT_CONTROL  &kp LEFT   &kp DOWN  &kp RIGHT      &kp KP_N0         &kp KP_DOT
-&none             &none         &none         &none
+&trans            &trans        &trans        &trans
             >;
         };
 
@@ -58,7 +83,7 @@
 &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
 &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
 &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
-&none             &none         &none         &none
+&trans  &trans  &trans  &trans
             >;
         };
 
@@ -70,7 +95,7 @@
 &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
 &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
 &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
-&none             &none         &none         &none
+&trans  &trans  &trans  &trans
             >;
         };
 
@@ -82,7 +107,7 @@
 &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
 &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
 &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
-&none             &none         &none         &none
+&trans  &trans  &trans  &trans
             >;
         };
 
@@ -94,8 +119,21 @@
 &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
 &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
 &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
-&none             &none         &none         &none
+&trans  &trans  &trans  &trans
             >;
+        };
+
+        Dip_1 {
+            bindings = <
+&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &none   &trans  &trans  &trans  &none   &trans  &trans  &trans  &trans  &trans  &trans  &trans
+            >;
+
+            label = "Dip 1";
         };
     };
 };
