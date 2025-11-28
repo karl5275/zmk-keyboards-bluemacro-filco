@@ -59,7 +59,6 @@
 
     kscan2: kscan_direct {
         compatible = "zmk,kscan-gpio-direct";
-        toggle-mode;
 
         input-gpios
         = <&gpio0 20 GPIO_ACTIVE_LOW>
