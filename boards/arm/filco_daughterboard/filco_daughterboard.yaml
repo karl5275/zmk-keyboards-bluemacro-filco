@@ -1,5 +1,5 @@
-identifier: bluemacro840_v1
-name: BlueMacro840_V1
+identifier: filco_daughterboard
+name: Filco Daughterboard Majestouch Convertible 2
 type: mcu
 arch: arm
 toolchain:
