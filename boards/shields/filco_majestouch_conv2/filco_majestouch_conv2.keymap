@@ -21,13 +21,14 @@
         };
 
         // Original Convertible 2 gesture: Ctrl+Alt+Fn enters the BT device
-        // picker (layer 2). Anchored on RIGHT Ctrl (99) + RIGHT Alt (96) + Fn
-        // (98) so the everyday left-hand mods stay latency-free. The picker
-        // layer is held while the chord is held; press 1-4 to select a device.
+        // picker (layer 2). Anchored on LEFT Ctrl (92) + LEFT Alt (94) + Fn
+        // (98). The picker layer is held while the chord is held; press 1-4 to
+        // select a device. timeout-ms is the window in which all three keys
+        // must land (matches the working studio_unlock combo).
         bt_picker {
             bindings = <&mo 2>;
-            key-positions = <96 98 99>;
-            timeout-ms = <75>;
+            key-positions = <92 94 98>;
+            timeout-ms = <250>;
             layers = <0>;
         };
     };

@@ -48,9 +48,9 @@
 
 #define CONNECTING_MS    4000  /* alternate this long while reconnecting      */
 #define ADV_TIMEOUT_MS   60000 /* blue blinks this long while advertising     */
-#define ALT_STEP_MS      250   /* blue<->red alternation half-period          */
-#define ADV_ON_MS        200   /* advertising blue blink: on / off            */
-#define ADV_OFF_MS       800
+#define ALT_STEP_MS      1000  /* blue<->red alternation: 1 s per colour       */
+#define ADV_ON_MS        1000  /* advertising blue blink: 1 s on / 1 s off    */
+#define ADV_OFF_MS       1000
 #define FLASH_ON_MS      150   /* success flash: on / off                     */
 #define FLASH_OFF_MS     150
 #define SUCCESS_FLASHES  3
