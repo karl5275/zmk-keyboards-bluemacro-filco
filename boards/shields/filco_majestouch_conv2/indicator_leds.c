@@ -41,6 +41,7 @@
 #include <zmk/events/endpoint_changed.h>
 #include <zmk/events/hid_indicators_changed.h>
 #include <zmk/events/layer_state_changed.h>
+#include <zmk/events/position_state_changed.h>
 
 /* ──────────── Tunables ──────────────────────────────────────────────── */
 #define MENU_LAYER_INDEX 2     /* dedicated BT picker layer (Ctrl+Alt+Fn)     */
@@ -155,6 +156,13 @@ static void indicator_work_handler(struct k_work *work) {
     ARG_UNUSED(work);
     const int64_t now = k_uptime_get();
 
+    /* Poll the picker layer from live state instead of trusting the
+     * layer_state_changed event (which never reached this module). The layer
+     * state itself is always correct, and this work runs on the system
+     * workqueue AFTER the combo has synchronously activated the layer, so the
+     * read is accurate. Key activity pokes us via the position listener. */
+    v_menu = zmk_keymap_layer_active(MENU_LAYER_INDEX);
+
     enum ind_mode target = target_mode(now);
 
     /* A higher-priority mode consumes any pending success edge so it can't
@@ -174,8 +182,9 @@ static void indicator_work_handler(struct k_work *work) {
             /* Lock the picker layer so it survives the momentary chord's
              * release: &mo's non-locking deactivate cannot clear a locked
              * layer (see set_layer_state in keymap.c), which latches the
-             * picker from the confirmed-working momentary combo. */
-            zmk_keymap_layer_activate(zmk_keymap_layer_index_to_id(MENU_LAYER_INDEX), true);
+             * picker from the confirmed-working momentary combo. Raw layer
+             * number matches how &mo 2 / &tog 2 reference it. */
+            zmk_keymap_layer_activate(MENU_LAYER_INDEX, true);
         }
     }
 
@@ -195,7 +204,7 @@ static void indicator_work_handler(struct k_work *work) {
          * work handler mirrors how ZMK's own sticky-key timer releases
          * layers; the layer-off event re-evaluates us to the BLE state. */
         if (now - mode_start >= MENU_TIMEOUT_MS) {
-            zmk_keymap_layer_deactivate(zmk_keymap_layer_index_to_id(MENU_LAYER_INDEX), true);
+            zmk_keymap_layer_deactivate(MENU_LAYER_INDEX, true);
         } else {
             k_work_reschedule(&indicator_work, K_MSEC(MENU_TIMEOUT_MS - (now - mode_start)));
         }
@@ -306,14 +315,24 @@ static int activity_cb(const zmk_event_t *eh) {
 ZMK_LISTENER(ind_activity, activity_cb);
 ZMK_SUBSCRIPTION(ind_activity, zmk_activity_state_changed);
 
+/* Both listeners just poke; the work handler reads the live layer state.
+ * position_state_changed is the reliable trigger (it fires for the combo
+ * keys); layer_state_changed is kept as a belt-and-suspenders poke. */
 static int layer_cb(const zmk_event_t *eh) {
     ARG_UNUSED(eh);
-    v_menu = zmk_keymap_layer_active(zmk_keymap_layer_index_to_id(MENU_LAYER_INDEX));
     poke();
     return 0;
 }
 ZMK_LISTENER(ind_layer, layer_cb);
 ZMK_SUBSCRIPTION(ind_layer, zmk_layer_state_changed);
+
+static int position_cb(const zmk_event_t *eh) {
+    ARG_UNUSED(eh);
+    poke();
+    return 0;
+}
+ZMK_LISTENER(ind_position, position_cb);
+ZMK_SUBSCRIPTION(ind_position, zmk_position_state_changed);
 
 /* ──────────── Init ─────────────────────────────────────────────────────── */
 static int indicator_init(void) {
