@@ -23,3 +23,8 @@ include:
     shield: filco_majestouch_conv2
     snippet: studio-rpc-usb-uart
     cmake-args: -DCONFIG_ZMK_STUDIO=y
+  # Settings-reset image: flash this to wipe stored bonds/settings (e.g. a
+  # stale BLE name), then re-flash the real firmware above.
+  - board: filco_daughterboard/nrf52840/zmk
+    shield: settings_reset
+    artifact-name: filco_settings_reset
