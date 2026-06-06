@@ -13,7 +13,7 @@
  *   Advertising / pairing (open slot, no bond) -> blue blink, up to 60 s.
  *   Connection succeeded                       -> blue+red flash 3x together.
  *   Pairing/connect failed (timeout)           -> LEDs go dark.
- *   Device picker (Ctrl+Alt+Fn -> BT layer)    -> blue+red lit solid.
+ *   Device picker (Ctrl+Alt+Fn, latched ~10s)  -> blue+red lit solid.
  *   Low battery (<= 10%)                       -> brief red pulse every 10 s.
  *
  * Concurrency model: event listeners ONLY update input flags and then poke a
@@ -121,11 +121,13 @@ static enum ind_mode target_mode(int64_t now) {
     if (v_sleeping) {
         return M_SLEEP;
     }
-    if (v_usb_mode) {
-        return M_LOCK;
-    }
+    /* The picker is an explicit user gesture: acknowledge it even on USB,
+     * where the LEDs are otherwise the lock indicators. */
     if (v_menu) {
         return M_MENU;
+    }
+    if (v_usb_mode) {
+        return M_LOCK;
     }
     /* Success flash: latched until its 3 cycles finish. */
     if (v_success || (cur_mode == M_SUCCESS && step < 2 * SUCCESS_FLASHES)) {

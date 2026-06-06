@@ -22,11 +22,12 @@
 
         // Original Convertible 2 gesture: Ctrl+Alt+Fn enters the BT device
         // picker (layer 2). Anchored on LEFT Ctrl (92) + LEFT Alt (94) + Fn
-        // (98). The picker layer is held while the chord is held; press 1-4 to
-        // select a device. timeout-ms is the window in which all three keys
-        // must land (matches the working studio_unlock combo).
+        // (98). Uses the sticky layer, so the picker LATCHES: release the chord
+        // and the layer (and the solid both-LEDs cue) stays up for ~10 s until
+        // you press a profile number 1-4. timeout-ms is the window in which all
+        // three keys must land (matches the working studio_unlock combo).
         bt_picker {
-            bindings = <&mo 2>;
+            bindings = <&bt_sticky 2>;
             key-positions = <92 94 98>;
             timeout-ms = <250>;
             layers = <0>;
@@ -55,6 +56,19 @@
             label = "TOGG_OFF";
             #binding-cells = <1>;
             toggle-mode = "off";
+        };
+
+        // Sticky momentary layer: like the stock &sl but it stays latched for
+        // up to 10 s (the original's "device toggle mode" dwell) so you can
+        // release Ctrl+Alt+Fn and then pick a profile. The next keypress
+        // (a profile number) consumes it and the layer drops away.
+        bt_sticky: bt_sticky {
+            compatible = "zmk,behavior-sticky-key";
+            label = "BT_STICKY";
+            #binding-cells = <1>;
+            bindings = <&mo>;
+            release-after-ms = <10000>;
+            quick-release;
         };
     };
 
