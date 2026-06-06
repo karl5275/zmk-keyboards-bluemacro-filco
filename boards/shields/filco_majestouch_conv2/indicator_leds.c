@@ -40,12 +40,11 @@
 #include <zmk/events/ble_active_profile_changed.h>
 #include <zmk/events/endpoint_changed.h>
 #include <zmk/events/hid_indicators_changed.h>
-#include <zmk/events/layer_state_changed.h>
-#include <zmk/events/position_state_changed.h>
 
 /* ──────────── Tunables ──────────────────────────────────────────────── */
 #define MENU_LAYER_INDEX 2     /* dedicated BT picker layer (Ctrl+Alt+Fn)     */
 #define MENU_TIMEOUT_MS  20000 /* auto-cancel the latched picker after this   */
+#define PICKER_POLL_MS   150   /* how often to poll the picker layer state    */
 #define LOW_BATT_PCT     10    /* red pulses at or below this state-of-charge */
 
 #define CONNECTING_MS    4000  /* alternate this long while reconnecting      */
@@ -96,6 +95,9 @@ static int64_t mode_start;   /* k_uptime_get() when cur_mode was entered      */
 
 static void indicator_work_handler(struct k_work *work);
 static K_WORK_DELAYABLE_DEFINE(indicator_work, indicator_work_handler);
+
+static void picker_poll_handler(struct k_work *work);
+static K_WORK_DELAYABLE_DEFINE(picker_poll, picker_poll_handler);
 
 /* ──────────── Low-level LED helper ─────────────────────────────────────── */
 static inline void set_leds(bool blue, bool red) {
@@ -156,13 +158,6 @@ static void indicator_work_handler(struct k_work *work) {
     ARG_UNUSED(work);
     const int64_t now = k_uptime_get();
 
-    /* Poll the picker layer from live state instead of trusting the
-     * layer_state_changed event (which never reached this module). The layer
-     * state itself is always correct, and this work runs on the system
-     * workqueue AFTER the combo has synchronously activated the layer, so the
-     * read is accurate. Key activity pokes us via the position listener. */
-    v_menu = zmk_keymap_layer_active(MENU_LAYER_INDEX);
-
     enum ind_mode target = target_mode(now);
 
     /* A higher-priority mode consumes any pending success edge so it can't
@@ -205,6 +200,8 @@ static void indicator_work_handler(struct k_work *work) {
          * layers; the layer-off event re-evaluates us to the BLE state. */
         if (now - mode_start >= MENU_TIMEOUT_MS) {
             zmk_keymap_layer_deactivate(MENU_LAYER_INDEX, true);
+            v_menu = false;
+            k_work_reschedule(&indicator_work, K_NO_WAIT); /* re-evaluate -> exit */
         } else {
             k_work_reschedule(&indicator_work, K_MSEC(MENU_TIMEOUT_MS - (now - mode_start)));
         }
@@ -308,6 +305,11 @@ static int activity_cb(const zmk_event_t *eh) {
     const struct zmk_activity_state_changed *ev = as_zmk_activity_state_changed(eh);
     if (ev) {
         v_sleeping = ev->state == ZMK_ACTIVITY_SLEEP;
+        if (ev->state == ZMK_ACTIVITY_ACTIVE) {
+            /* (Re)start picker polling whenever the keyboard becomes active.
+             * It self-stops when no longer active, to spare idle battery. */
+            k_work_reschedule(&picker_poll, K_MSEC(PICKER_POLL_MS));
+        }
         poke();
     }
     return 0;
@@ -315,24 +317,27 @@ static int activity_cb(const zmk_event_t *eh) {
 ZMK_LISTENER(ind_activity, activity_cb);
 ZMK_SUBSCRIPTION(ind_activity, zmk_activity_state_changed);
 
-/* Both listeners just poke; the work handler reads the live layer state.
- * position_state_changed is the reliable trigger (it fires for the combo
- * keys); layer_state_changed is kept as a belt-and-suspenders poke. */
-static int layer_cb(const zmk_event_t *eh) {
-    ARG_UNUSED(eh);
-    poke();
-    return 0;
+/* Picker detection by polling, not events. The combo CAPTURES the
+ * Ctrl+Alt+Fn key events (ZMK_EV_EVENT_CAPTURED in combo.c), so a
+ * position/keycode listener never sees them, and layer_state_changed did not
+ * reach this module either. So instead we periodically read the live layer
+ * state and only wake the main handler when the picker turns on or off. This
+ * adds no per-keypress work (no LED flicker while typing). The timer stops
+ * naturally in deep sleep (the SoC is off). */
+static void picker_poll_handler(struct k_work *work) {
+    ARG_UNUSED(work);
+    bool now_menu = zmk_keymap_layer_active(MENU_LAYER_INDEX);
+    if (now_menu != v_menu) {
+        v_menu = now_menu;
+        poke();
+    }
+    /* Keep polling only while active; activity_cb restarts us on wake. The
+     * picker's whole lifecycle (entry, latch, 20s timeout) fits inside the
+     * active window, so idle/sleep need no polling. */
+    if (zmk_activity_get_state() == ZMK_ACTIVITY_ACTIVE) {
+        k_work_reschedule(&picker_poll, K_MSEC(PICKER_POLL_MS));
+    }
 }
-ZMK_LISTENER(ind_layer, layer_cb);
-ZMK_SUBSCRIPTION(ind_layer, zmk_layer_state_changed);
-
-static int position_cb(const zmk_event_t *eh) {
-    ARG_UNUSED(eh);
-    poke();
-    return 0;
-}
-ZMK_LISTENER(ind_position, position_cb);
-ZMK_SUBSCRIPTION(ind_position, zmk_position_state_changed);
 
 /* ──────────── Init ─────────────────────────────────────────────────────── */
 static int indicator_init(void) {
@@ -345,6 +350,7 @@ static int indicator_init(void) {
     prev_connected = v_connected; /* no spurious success flash at boot */
     v_indicators = zmk_hid_indicators_get_current_profile();
     poke();
+    k_work_reschedule(&picker_poll, K_MSEC(PICKER_POLL_MS));
     return 0;
 }
 SYS_INIT(indicator_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
