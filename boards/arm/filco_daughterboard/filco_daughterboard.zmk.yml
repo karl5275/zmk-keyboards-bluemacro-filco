@@ -1,0 +1,9 @@
+file_format: "1"
+id: filco_daughterboard
+name: Filco Daughterboard (Majestouch Convertible 2)
+type: board
+arch: arm
+outputs:
+  - usb
+  - ble
+url: https://nrf52.jpconstantineau.com/docs/filco_daughterboard/

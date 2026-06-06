@@ -6,11 +6,11 @@
 
 /dts-v1/;
 #include <nordic/nrf52840_qiaa.dtsi>
-#include "bluemacro840_v1-pinctrl.dtsi"
+#include "filco_daughterboard-pinctrl.dtsi"
 
 / {
-    model = "BlueMicro840_V1";
-    compatible = "bluemicro840,v1";
+    model = "Filco Daughterboard Majestouch Convertible 2";
+    compatible = "karl5275,filco-daughterboard";
 
     chosen {
         zephyr,code-partition = &code_partition;

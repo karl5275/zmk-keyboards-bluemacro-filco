@@ -1,12 +1,12 @@
-# BlueMacro840 board configuration
+# Filco Daughterboard board configuration
 
 # Copyright (c) 2020 Pete Johanson, Derek Schmell
 # SPDX-License-Identifier: MIT
 
-if BOARD_BLUEMACRO840_V1
+if BOARD_FILCO_DAUGHTERBOARD
 
 config BOARD
-    default "bluemacro840_v1"
+    default "filco_daughterboard"
 
 if USB_DEVICE_STACK
 
@@ -18,4 +18,4 @@ endif # USB_DEVICE_STACK
 config BT_CTLR
     default BT
 
-endif # BOARD_BLUEMACRO840_V1
+endif # BOARD_FILCO_DAUGHTERBOARD
