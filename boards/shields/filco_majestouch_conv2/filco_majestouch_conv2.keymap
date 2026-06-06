@@ -21,16 +21,16 @@
         };
 
         // Original Convertible 2 gesture: Ctrl+Alt+Fn enters the BT device
-        // picker (layer 2). Anchored on LEFT Ctrl (92) + LEFT Alt (94) + Fn
-        // (98). Toggles the picker ON and LATCHES it (both LEDs solid) - hands
-        // off the chord and it stays. Press a profile number 1-4 to select and
-        // exit; ESC or the chord again cancels. timeout-ms is the window in
-        // which all three combo keys must land (matches studio_unlock).
+        // picker (layer 2). LEFT Ctrl (92) + LEFT Alt (94) + Fn (98). Uses
+        // momentary &mo; the LED firmware locks the layer on entry so it
+        // LATCHES after the chord is released (a combo-fired &tog/&sl would
+        // not hold on this board). Press 1-4 to select+exit, ESC to cancel;
+        // it also auto-cancels after 20s. timeout-ms is the chord window.
         bt_picker {
-            bindings = <&tog 2>;
+            bindings = <&mo 2>;
             key-positions = <92 94 98>;
             timeout-ms = <250>;
-            layers = <0 2>; // base enters; layer 2 lets the chord cancel
+            layers = <0>;
         };
     };
 

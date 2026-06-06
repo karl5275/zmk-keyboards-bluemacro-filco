@@ -52,8 +52,8 @@
 #define ALT_STEP_MS      1000  /* blue<->red alternation: 1 s per colour       */
 #define ADV_ON_MS        1000  /* advertising blue blink: 1 s on / 1 s off    */
 #define ADV_OFF_MS       1000
-#define FLASH_ON_MS      400   /* success flash: slow both-on / both-off      */
-#define FLASH_OFF_MS     400
+#define FLASH_ON_MS      1000  /* success flash: 1 s both-off / 1 s both-on   */
+#define FLASH_OFF_MS     1000
 #define SUCCESS_FLASHES  3
 #define LOWBATT_PULSE_MS 60    /* low-battery: brief red pulse ...            */
 #define LOWBATT_GAP_MS   (10000 - LOWBATT_PULSE_MS) /* ... once every ~10 s   */
@@ -170,6 +170,13 @@ static void indicator_work_handler(struct k_work *work) {
         if (target == M_SUCCESS) {
             v_success = false; /* consume the edge */
         }
+        if (target == M_MENU) {
+            /* Lock the picker layer so it survives the momentary chord's
+             * release: &mo's non-locking deactivate cannot clear a locked
+             * layer (see set_layer_state in keymap.c), which latches the
+             * picker from the confirmed-working momentary combo. */
+            zmk_keymap_layer_activate(zmk_keymap_layer_index_to_id(MENU_LAYER_INDEX), true);
+        }
     }
 
     switch (cur_mode) {
@@ -183,10 +190,10 @@ static void indicator_work_handler(struct k_work *work) {
 
     case M_MENU:
         set_leds(true, true);
-        /* Auto-cancel the latched picker after the dwell. Deactivating the
-         * locked toggle layer from this work handler mirrors how ZMK's own
-         * sticky-key timer releases layers (same k_work context). The
-         * resulting layer-off event re-evaluates us back to the BLE state. */
+        /* Auto-cancel the latched picker after the dwell. Force-deactivate
+         * (locking=true) clears the lock we set on entry. Doing this from a
+         * work handler mirrors how ZMK's own sticky-key timer releases
+         * layers; the layer-off event re-evaluates us to the BLE state. */
         if (now - mode_start >= MENU_TIMEOUT_MS) {
             zmk_keymap_layer_deactivate(zmk_keymap_layer_index_to_id(MENU_LAYER_INDEX), true);
         } else {
@@ -195,29 +202,31 @@ static void indicator_work_handler(struct k_work *work) {
         return;
 
     case M_SUCCESS: {
-        bool on = (step % 2) == 0;
+        /* Start dark: off, on, off, on, ... (SUCCESS_FLASHES on-phases).
+         * target_mode() drops us out of M_SUCCESS once step reaches the
+         * count, so the final on-phase still keeps its full duration. */
+        bool on = (step % 2) == 1;
         set_leds(on, on);
         step++;
-        if (step >= 2 * SUCCESS_FLASHES) {
-            /* Done: re-evaluate immediately to drop into the rest state. */
-            k_work_reschedule(&indicator_work, K_NO_WAIT);
-        } else {
-            k_work_reschedule(&indicator_work,
-                              K_MSEC(on ? FLASH_ON_MS : FLASH_OFF_MS));
-        }
+        k_work_reschedule(&indicator_work, K_MSEC(on ? FLASH_ON_MS : FLASH_OFF_MS));
         return;
     }
 
     case M_CONNECTING: {
-        bool blue_phase = (step % 2) == 0;
-        set_leds(blue_phase, !blue_phase);
+        /* Start dark, then alternate blue<->red. */
+        if (step == 0) {
+            set_leds(false, false);
+        } else {
+            bool blue_phase = (step % 2) == 1;
+            set_leds(blue_phase, !blue_phase);
+        }
         step++;
         k_work_reschedule(&indicator_work, K_MSEC(ALT_STEP_MS));
         return;
     }
 
     case M_ADVERTISING: {
-        bool on = (step % 2) == 0;
+        bool on = (step % 2) == 1; /* start dark: off, blue, off, blue, ... */
         set_leds(on, false);
         step++;
         k_work_reschedule(&indicator_work, K_MSEC(on ? ADV_ON_MS : ADV_OFF_MS));
@@ -227,7 +236,7 @@ static void indicator_work_handler(struct k_work *work) {
     case M_REST:
     default:
         if (v_low_batt) {
-            bool pulse = (step % 2) == 0;
+            bool pulse = (step % 2) == 1; /* start with the off gap */
             set_leds(false, pulse);
             step++;
             k_work_reschedule(&indicator_work,
