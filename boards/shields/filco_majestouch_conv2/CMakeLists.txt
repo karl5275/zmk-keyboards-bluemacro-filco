@@ -1,1 +1,1 @@
-target_sources(app PRIVATE hid_leds.c)
+target_sources(app PRIVATE indicator_leds.c)

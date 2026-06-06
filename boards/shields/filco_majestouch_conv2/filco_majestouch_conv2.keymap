@@ -19,6 +19,17 @@
             timeout-ms = <250>;
             layers = <0>;
         };
+
+        // Original Convertible 2 gesture: Ctrl+Alt+Fn enters the BT device
+        // picker (layer 2). Anchored on RIGHT Ctrl (99) + RIGHT Alt (96) + Fn
+        // (98) so the everyday left-hand mods stay latency-free. The picker
+        // layer is held while the chord is held; press 1-4 to select a device.
+        bt_picker {
+            bindings = <&mo 2>;
+            key-positions = <96 98 99>;
+            timeout-ms = <75>;
+            layers = <0>;
+        };
     };
 
     macros {
@@ -66,7 +77,7 @@
             display-name = "1";
             bindings = <
 &kp ESCAPE        &kp C_VOL_UP  &kp C_VOL_DN  &kp C_MUTE    &kp F4         &kp C_PREV     &kp C_PP      &kp C_STOP         &kp C_NEXT &kp F9    &kp F10        &kp F11           &kp C_SLEEP        &kp PRINTSCREEN  &kp SCROLLLOCK  &kp PAUSE_BREAK  &bt BT_CLR_ALL
-&kp GRAVE         &bt BT_SEL 0  &bt BT_SEL 1  &bt BT_SEL 2  &bt BT_SEL 3   &out OUT_TOG   &kp N6        &kp N7             &kp N8     &kp N9    &kp N0         &kp MINUS         &kp EQUAL          &kp BACKSPACE    &kp INSERT      &kp HOME         &kp PAGE_UP    &kp KP_NUM  &kp KP_SLASH  &kp KP_ASTERISK  &kp KP_MINUS
+&kp GRAVE         &trans        &trans        &trans        &trans         &trans         &kp N6        &kp N7             &kp N8     &kp N9    &kp N0         &kp MINUS         &kp EQUAL          &kp BACKSPACE    &kp INSERT      &kp HOME         &kp PAGE_UP    &kp KP_NUM  &kp KP_SLASH  &kp KP_ASTERISK  &kp KP_MINUS
 &kp TAB           &kp Q         &kp W         &kp E         &kp R          &kp T          &kp Y         &kp U              &kp I      &kp O     &kp P          &kp LEFT_BRACKET  &kp RIGHT_BRACKET  &kp BACKSLASH    &kp DELETE      &kp END          &kp PAGE_DOWN  &kp KP_N7   &kp KP_N8     &kp KP_N9        &kp KP_PLUS
 &kp CAPS          &kp A         &kp S         &kp D         &kp F          &kp G          &kp H         &kp J              &kp K      &kp L     &kp SEMICOLON  &kp SINGLE_QUOTE  &kp ENTER          &kp KP_N4        &kp KP_N5       &kp KP_N6
 &kp LEFT_SHIFT    &kp Z         &kp X         &kp C         &kp V          &kp B          &kp N         &kp M              &kp COMMA  &kp DOT   &kp SLASH      &kp RIGHT_SHIFT   &kp UP             &kp KP_N1        &kp KP_N2       &kp KP_N3        &kp KP_ENTER
@@ -75,10 +86,11 @@
             >;
         };
 
-        layer_2 {
+        bt_picker_layer {
+            display-name = "BT";
             bindings = <
-&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
-&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans        &trans        &trans        &trans        &trans        &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &bt BT_SEL 0  &bt BT_SEL 1  &bt BT_SEL 2  &bt BT_SEL 3  &out OUT_TOG  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
 &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
 &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
 &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
