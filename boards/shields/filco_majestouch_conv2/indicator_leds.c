@@ -13,7 +13,7 @@
  *   Advertising / pairing (open slot, no bond) -> blue blink, up to 60 s.
  *   Connection succeeded                       -> blue+red flash 3x together.
  *   Pairing/connect failed (timeout)           -> LEDs go dark.
- *   Device picker (Ctrl+Alt+Fn, latched ~10s)  -> blue+red lit solid.
+ *   Device picker (Ctrl+Alt+Fn, latched layer) -> blue+red lit solid.
  *   Low battery (<= 10%)                       -> brief red pulse every 10 s.
  *
  * Concurrency model: event listeners ONLY update input flags and then poke a
@@ -51,8 +51,8 @@
 #define ALT_STEP_MS      1000  /* blue<->red alternation: 1 s per colour       */
 #define ADV_ON_MS        1000  /* advertising blue blink: 1 s on / 1 s off    */
 #define ADV_OFF_MS       1000
-#define FLASH_ON_MS      150   /* success flash: on / off                     */
-#define FLASH_OFF_MS     150
+#define FLASH_ON_MS      400   /* success flash: slow both-on / both-off      */
+#define FLASH_OFF_MS     400
 #define SUCCESS_FLASHES  3
 #define LOWBATT_PULSE_MS 60    /* low-battery: brief red pulse ...            */
 #define LOWBATT_GAP_MS   (10000 - LOWBATT_PULSE_MS) /* ... once every ~10 s   */
