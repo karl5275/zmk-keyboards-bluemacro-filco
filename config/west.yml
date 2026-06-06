@@ -1,6 +1,6 @@
 manifest:
   defaults:
-    revision: v0.3
+    revision: main
   remotes:
     - name: karl5275
       url-base: https://github.com/karl5275
@@ -9,7 +9,7 @@ manifest:
   projects:
     - name: zmk
       remote: karl5275
-      revision: AAbatteries
+      revision: AAbatteries-zephyr4
       import: app/west.yml
   self:
     path: config

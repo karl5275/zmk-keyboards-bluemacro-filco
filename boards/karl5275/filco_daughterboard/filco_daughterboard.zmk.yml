@@ -1,0 +1,8 @@
+file_format: "1"
+id: filco_daughterboard//zmk
+name: Filco Daughterboard (Majestouch Convertible 2)
+type: board
+arch: arm
+outputs:
+  - usb
+  - ble

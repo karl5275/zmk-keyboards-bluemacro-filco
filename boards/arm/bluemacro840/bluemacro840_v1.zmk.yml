@@ -1,9 +1,0 @@
-file_format: "1"
-id: bluemacro840_v1
-name: BlueMacro840 v1
-type: board
-arch: arm
-outputs:
-  - usb
-  - ble
-url: https://nrf52.jpconstantineau.com/docs/bluemacro840_v1/

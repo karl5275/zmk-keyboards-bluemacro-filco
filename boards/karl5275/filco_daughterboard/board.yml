@@ -1,0 +1,7 @@
+board:
+  name: filco_daughterboard
+  vendor: karl5275
+  socs:
+    - name: nrf52840
+      variants:
+        - name: zmk

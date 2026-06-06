@@ -1,16 +1,19 @@
 /*
- * Copyright (c) 2020 The ZMK Contributors
+ * Custom daughterboard for the Filco Majestouch Convertible 2.
+ * MCU module: Holyiot 18010 (Nordic nRF52840).
  *
+ * Copyright (c) 2020 The ZMK Contributors
  * SPDX-License-Identifier: MIT
  */
 
 /dts-v1/;
 #include <nordic/nrf52840_qiaa.dtsi>
-#include "bluemacro840_v1-pinctrl.dtsi"
+#include <common/nordic/nrf52840_uf2_boot_mode.dtsi>
+#include "filco_daughterboard-pinctrl.dtsi"
 
 / {
-    model = "BlueMicro840_V1";
-    compatible = "bluemicro840,v1";
+    model = "Filco Daughterboard Majestouch Convertible 2";
+    compatible = "karl5275,filco-daughterboard";
 
     chosen {
         zephyr,code-partition = &code_partition;
@@ -19,18 +22,18 @@
         zmk,battery = &vbatt;
     };
 
-leds: leds {
-		compatible = "gpio-leds";
-		status = "okay";
-		blue_led: led_0 {
-			gpios = <&gpio1 13 GPIO_ACTIVE_HIGH>;
-			label = "Blue LED";
-		};
-		red_led: led_1 {
-			gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>;
-			label = "Red LED";
-		};
-	};
+    leds: leds {
+        compatible = "gpio-leds";
+        status = "okay";
+        blue_led: led_0 {
+            gpios = <&gpio1 13 GPIO_ACTIVE_HIGH>;
+            label = "Blue LED";
+        };
+        red_led: led_1 {
+            gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>;
+            label = "Red LED";
+        };
+    };
 
     // Node name must match original "EXT_POWER" label to preserve user settings.
     EXT_POWER {
@@ -44,9 +47,13 @@ leds: leds {
         io-channels = <&adc 1>;
         output-ohms = <2000000>;
         full-ohms = <(2000000 + 806000)>;
-		power-gpios = <&gpio0 2 GPIO_ACTIVE_HIGH>;
+        power-gpios = <&gpio0 2 GPIO_ACTIVE_HIGH>;
     };
+};
 
+/* Use the internal DC/DC regulator for lower current draw (battery life). */
+&reg1 {
+    regulator-initial-mode = <NRF5X_REG_MODE_DCDC>;
 };
 
 &adc {
@@ -90,7 +97,6 @@ leds: leds {
 zephyr_udc0: &usbd {
     status = "okay";
 };
-
 
 &flash0 {
     /*
