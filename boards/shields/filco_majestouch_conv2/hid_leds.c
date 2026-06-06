@@ -22,7 +22,7 @@ static const struct device *const led_dev = DEVICE_DT_GET(LEDS_NODE);
 /* ──────────── Helpers ───────────────────────────────────────────────── */
 static inline bool usb_active(void)
 {
-    struct zmk_endpoint_instance ep = zmk_endpoints_selected();
+    struct zmk_endpoint_instance ep = zmk_endpoint_get_selected();
     return ep.transport == ZMK_TRANSPORT_USB && zmk_usb_is_powered();
 }
 
