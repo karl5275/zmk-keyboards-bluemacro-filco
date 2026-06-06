@@ -5,11 +5,14 @@ manifest:
     - name: karl5275
       url-base: https://github.com/karl5275
     # Additional modules containing boards/shields/custom code can be listed here as well
-    # See https://docs.zephyrproject.org/3.2.0/develop/west/manifest.html#projects
+    # See https://docs.zephyrproject.org/latest/develop/west/manifest.html#projects
   projects:
     - name: zmk
       remote: karl5275
-      revision: AAbatteries-zephyr4
+      # Pinned to a SHA for reproducible builds. This is the tip of branch
+      # AAbatteries-zephyr4 (Zephyr 4.1 + 2xAA alkaline discharge curve).
+      # Update this SHA when you advance the fork.
+      revision: 975c15a411f404eb5bac8e2717075d28409286ed
       import: app/west.yml
   self:
     path: config

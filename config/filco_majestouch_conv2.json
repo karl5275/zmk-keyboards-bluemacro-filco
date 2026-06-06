@@ -106,7 +106,11 @@
         { "label":        "DOWN", "row": 5, "col":  9, "x": 16.25, "y": 5.25 },
         { "label":       "RIGHT", "row": 5, "col": 10, "x": 17.25, "y": 5.25 },
         { "label":       "KP_N0", "row": 5, "col": 11, "x": 18.5, "y": 5.25, "w": 2.0 },
-        { "label":      "KP_DOT", "row": 5, "col": 12, "x": 20.5, "y": 5.25 }
+        { "label":      "KP_DOT", "row": 5, "col": 12, "x": 20.5, "y": 5.25 },
+        { "label":        "DIP1", "row": 9, "col":  0, "x": 0.0, "y": 6.5 },
+        { "label":        "DIP2", "row": 9, "col":  1, "x": 1.5, "y": 6.5 },
+        { "label":        "DIP3", "row": 9, "col":  2, "x": 3.0, "y": 6.5 },
+        { "label":        "DIP4", "row": 9, "col":  3, "x": 4.5, "y": 6.5 }
       ]
     }
   }
