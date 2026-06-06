@@ -30,7 +30,7 @@
             bindings = <&tog 2>;
             key-positions = <92 94 98>;
             timeout-ms = <250>;
-            layers = <0>;
+            layers = <0 2>; // base enters; layer 2 lets the chord cancel
         };
     };
 
