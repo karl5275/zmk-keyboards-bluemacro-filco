@@ -331,12 +331,11 @@ static void picker_poll_handler(struct k_work *work) {
         v_menu = now_menu;
         poke();
     }
-    /* Keep polling only while active; activity_cb restarts us on wake. The
-     * picker's whole lifecycle (entry, latch, 20s timeout) fits inside the
-     * active window, so idle/sleep need no polling. */
-    if (zmk_activity_get_state() == ZMK_ACTIVITY_ACTIVE) {
-        k_work_reschedule(&picker_poll, K_MSEC(PICKER_POLL_MS));
-    }
+    /* Always keep polling. The combo CAPTURES the Ctrl+Alt+Fn key events, so
+     * no input event reliably signals picker entry to restart a stopped poll
+     * (and the keyboard may have idled while waiting). Deep sleep powers off
+     * the SoC, which stops this; init restarts it on the next boot/wake. */
+    k_work_reschedule(&picker_poll, K_MSEC(PICKER_POLL_MS));
 }
 
 /* ──────────── Init ─────────────────────────────────────────────────────── */
