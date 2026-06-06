@@ -44,6 +44,7 @@
 
 /* ──────────── Tunables ──────────────────────────────────────────────── */
 #define MENU_LAYER_INDEX 2     /* dedicated BT picker layer (Ctrl+Alt+Fn)     */
+#define MENU_TIMEOUT_MS  20000 /* auto-cancel the latched picker after this   */
 #define LOW_BATT_PCT     10    /* red pulses at or below this state-of-charge */
 
 #define CONNECTING_MS    4000  /* alternate this long while reconnecting      */
@@ -182,7 +183,16 @@ static void indicator_work_handler(struct k_work *work) {
 
     case M_MENU:
         set_leds(true, true);
-        return; /* stays solid until the layer changes */
+        /* Auto-cancel the latched picker after the dwell. Deactivating the
+         * locked toggle layer from this work handler mirrors how ZMK's own
+         * sticky-key timer releases layers (same k_work context). The
+         * resulting layer-off event re-evaluates us back to the BLE state. */
+        if (now - mode_start >= MENU_TIMEOUT_MS) {
+            zmk_keymap_layer_deactivate(zmk_keymap_layer_index_to_id(MENU_LAYER_INDEX), true);
+        } else {
+            k_work_reschedule(&indicator_work, K_MSEC(MENU_TIMEOUT_MS - (now - mode_start)));
+        }
+        return;
 
     case M_SUCCESS: {
         bool on = (step % 2) == 0;
