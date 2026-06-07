@@ -137,33 +137,33 @@ static enum ind_mode target_mode(int64_t now) {
     if (v_sleeping) {
         return M_SLEEP;
     }
-    /* The picker is an explicit user gesture: acknowledge it even on USB,
-     * where the LEDs are otherwise the lock indicators. */
+    /* Picker: explicit user gesture, shown even on USB. */
     if (v_menu) {
         return M_MENU;
     }
+    /* BT signals OUTRANK the USB lock indicators, so a connection/pairing is
+     * visible even while wired (caps/num would otherwise mask them). They are
+     * all transient/time-bounded, so the lock indicators reappear afterwards. */
+    if (v_success || (cur_mode == M_SUCCESS && step < 2 * SUCCESS_FLASHES)) {
+        return M_SUCCESS; /* success flash */
+    }
+    if (!v_connected) {
+        if (v_open) {
+            /* Advertising for a new pairing; give up after the timeout. */
+            if (!(cur_mode == M_ADVERTISING && (now - mode_start) >= ADV_TIMEOUT_MS)) {
+                return M_ADVERTISING;
+            }
+        } else if (!(cur_mode == M_CONNECTING && (now - mode_start) >= CONNECTING_MS)) {
+            /* Bonded but not connected: reconnecting. Alternate, then give up. */
+            return M_CONNECTING;
+        }
+    }
+    /* No active BT signal: USB -> Caps/Num lock indicators; else idle (off or
+     * the low-battery pulse). */
     if (v_usb_mode) {
         return M_LOCK;
     }
-    /* Success flash: latched until its 3 cycles finish. */
-    if (v_success || (cur_mode == M_SUCCESS && step < 2 * SUCCESS_FLASHES)) {
-        return M_SUCCESS;
-    }
-    if (v_connected) {
-        return M_REST; /* connected & idle: quiet (plus low-batt pulse) */
-    }
-    if (v_open) {
-        /* Advertising for a new pairing; give up after the timeout. */
-        if (cur_mode == M_ADVERTISING && (now - mode_start) >= ADV_TIMEOUT_MS) {
-            return M_REST;
-        }
-        return M_ADVERTISING;
-    }
-    /* Bonded but not connected: reconnecting. Alternate, then give up. */
-    if (cur_mode == M_CONNECTING && (now - mode_start) >= CONNECTING_MS) {
-        return M_REST;
-    }
-    return M_CONNECTING;
+    return M_REST;
 }
 
 static void indicator_work_handler(struct k_work *work) {
