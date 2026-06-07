@@ -29,9 +29,12 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/util.h>
 
+#include <dt-bindings/zmk/modifiers.h>
+
 #include <zmk/activity.h>
 #include <zmk/ble.h>
 #include <zmk/endpoints.h>
+#include <zmk/hid.h>
 #include <zmk/hid_indicators.h>
 #include <zmk/keymap.h>
 #include <zmk/usb.h>
@@ -41,9 +44,11 @@
 #include <zmk/events/ble_active_profile_changed.h>
 #include <zmk/events/endpoint_changed.h>
 #include <zmk/events/hid_indicators_changed.h>
+#include <zmk/events/position_state_changed.h>
 
 /* ──────────── Tunables ──────────────────────────────────────────────── */
 #define MENU_LAYER_INDEX 2     /* dedicated BT picker layer (Ctrl+Alt+Fn)     */
+#define FN_POSITION      98    /* matrix position of the Fn key (&mo 1)       */
 #define MENU_TIMEOUT_MS  20000 /* auto-cancel the latched picker after this   */
 #define LOW_BATT_PCT     10    /* red pulses at or below this state-of-charge */
 
@@ -254,6 +259,7 @@ static void picker_set(bool on) {
     }
     v_menu = on;
     if (on) {
+        set_leds(true, true); /* render now, independent of the work handler */
         zmk_keymap_layer_activate(MENU_LAYER_INDEX, true);
         k_work_reschedule(&picker_timeout, K_MSEC(MENU_TIMEOUT_MS));
     } else {
@@ -325,6 +331,25 @@ static int activity_cb(const zmk_event_t *eh) {
 }
 ZMK_LISTENER(ind_activity, activity_cb);
 ZMK_SUBSCRIPTION(ind_activity, zmk_activity_state_changed);
+
+/* ──────────── Picker entry: firmware-observed Ctrl+Alt+Fn (no combo) ────── */
+/* No combo, so Ctrl/Alt are NEVER captured -> zero latency (Ctrl+click works)
+ * and no timing window. When Fn (which still also acts as its momentary layer)
+ * is pressed while Ctrl+Alt are held, toggle the picker. Ctrl/Alt reach the
+ * host during the gesture, which is harmless. Position events for Fn are not
+ * captured by any combo, so this listener reliably sees them. */
+static int position_cb(const zmk_event_t *eh) {
+    const struct zmk_position_state_changed *ev = as_zmk_position_state_changed(eh);
+    if (ev && ev->state && ev->position == FN_POSITION) {
+        zmk_mod_flags_t mods = zmk_hid_get_explicit_mods();
+        if ((mods & (MOD_LCTL | MOD_RCTL)) && (mods & (MOD_LALT | MOD_RALT))) {
+            filco_picker_toggle();
+        }
+    }
+    return 0;
+}
+ZMK_LISTENER(ind_position, position_cb);
+ZMK_SUBSCRIPTION(ind_position, zmk_position_state_changed);
 
 /* ──────────── Init ─────────────────────────────────────────────────────── */
 static int indicator_init(void) {

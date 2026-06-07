@@ -20,20 +20,11 @@
             layers = <0>;
         };
 
-        // Original Convertible 2 gesture: Ctrl+Alt+Fn enters the BT device
-        // picker. LEFT Ctrl (92) + LEFT Alt (94) + Fn (98). Fires the custom
-        // &picker behavior: the combo invokes it on the SAME path that makes
-        // profile selection work, so detection is reliable (unlike polling /
-        // layer events). &picker toggles the picker in firmware: sets the
-        // solid-both LED flag AND locks picker layer 2 so it latches and 1-4
-        // resolve. Press 1-4 to select+exit, ESC or the chord again to cancel;
-        // it also auto-cancels after 20s. timeout-ms is the chord window.
-        bt_picker {
-            bindings = <&picker>;
-            key-positions = <92 94 98>;
-            timeout-ms = <250>;
-            layers = <0>;
-        };
+        // NOTE: the BT picker is NO LONGER a combo. The firmware
+        // (indicator_leds.c) watches for Fn pressed while Ctrl+Alt are held
+        // and toggles the picker itself. This keeps Ctrl/Alt out of any combo
+        // -> zero added latency (Ctrl+click etc.) and no timing window. Ctrl
+        // and Alt reach the host during the gesture, which is harmless.
     };
 
     macros {
