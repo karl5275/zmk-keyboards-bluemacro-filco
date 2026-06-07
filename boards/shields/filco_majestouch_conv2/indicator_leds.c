@@ -56,6 +56,7 @@
 #define POS_N2           19
 #define POS_N3           20
 #define POS_N4           21
+#define POS_N5           22    /* 5: toggle output transport (BLE <-> USB)    */
 #define MENU_TIMEOUT_MS  20000 /* auto-cancel the latched picker after this   */
 #define LOW_BATT_PCT     10    /* red pulses at or below this state-of-charge */
 
@@ -340,11 +341,11 @@ ZMK_SUBSCRIPTION(ind_activity, zmk_activity_state_changed);
 /* ENTRY: Fn pressed while Ctrl+Alt held. No combo, so Ctrl/Alt are never
  * captured -> zero latency (Ctrl+click works) and no timing window; they reach
  * the host during the gesture (harmless).
- * SELECTION/CANCEL: while the picker is latched, 1-4 pick a BT profile and ESC
- * cancels, done in firmware (no layer needed). We return CAPTURED to try to
- * stop the key also typing; that only works if this listener runs before the
- * keymap (link order), so a stray digit is possible - the selection itself
- * always registers. */
+ * SELECTION/CANCEL: while the picker is latched, 1-4 pick a BT profile, 5
+ * toggles the output transport (BLE <-> USB), and ESC cancels - all in
+ * firmware (no layer needed). We return CAPTURED to try to stop the key also
+ * typing; that only works if this listener runs before the keymap (link
+ * order), so a stray digit is possible - the action itself always registers. */
 static int position_cb(const zmk_event_t *eh) {
     const struct zmk_position_state_changed *ev = as_zmk_position_state_changed(eh);
     if (!ev || !ev->state) {
@@ -358,6 +359,10 @@ static int position_cb(const zmk_event_t *eh) {
         case POS_N2: profile = 1; break;
         case POS_N3: profile = 2; break;
         case POS_N4: profile = 3; break;
+        case POS_N5:
+            zmk_endpoint_toggle_preferred_transport(); /* BLE <-> USB */
+            picker_set(false); /* toggle output + exit */
+            return ZMK_EV_EVENT_CAPTURED;
         case POS_ESC:
             picker_set(false); /* cancel */
             return ZMK_EV_EVENT_CAPTURED;
