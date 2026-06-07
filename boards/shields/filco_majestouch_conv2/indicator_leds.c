@@ -13,13 +13,16 @@
  *   Advertising / pairing (open slot, no bond) -> blue blink, up to 60 s.
  *   Connection succeeded                       -> blue+red flash 3x together.
  *   Pairing/connect failed (timeout)           -> LEDs go dark.
- *   Device picker (Ctrl+Alt+Fn, latched layer) -> blue+red lit solid.
+ *   Device picker (Ctrl+Alt+Fn, latched ~20s)  -> blue+red lit solid.
  *   Low battery (<= 10%)                       -> brief red pulse every 10 s.
  *
- * Concurrency model: event listeners and the &picker behavior ONLY update
- * input flags (and the picker-layer lock) and then poke a single delayed-work
- * handler. That handler is the only code that touches the LEDs or the
- * animation state, so there is no cross-context race on LED state.
+ * The picker is implemented entirely here (no keymap layer/combo): a position
+ * listener detects the Ctrl+Alt+Fn gesture, the 1-4 selection, and ESC cancel.
+ *
+ * Concurrency model: the event/position listeners ONLY update input flags and
+ * then poke a single delayed-work handler, which drives the LED animation.
+ * (picker_set() also renders once directly on entry for immediacy; it renders
+ * the same solid-both the handler would, so there is no meaningful race.)
  *
  * SPDX-License-Identifier: MIT
  */
@@ -79,7 +82,7 @@ static const struct device *const led_dev = DEVICE_DT_GET(LEDS_NODE);
 static volatile bool v_usb_mode;   /* USB endpoint selected & powered        */
 static volatile bool v_connected;  /* active BLE profile connected           */
 static volatile bool v_open;       /* active BLE profile open (no bond)       */
-static volatile bool v_menu;       /* device-picker layer active             */
+static volatile bool v_menu;       /* device-picker mode active              */
 static volatile bool v_sleeping;   /* deep sleep                             */
 static volatile bool v_low_batt;   /* battery <= threshold                   */
 static volatile bool v_success;    /* one-shot: connection just succeeded     */
@@ -194,9 +197,9 @@ static void indicator_work_handler(struct k_work *work) {
         return; /* event-driven only */
 
     case M_MENU:
-        /* Solid both. Entry/exit, the picker-layer lock, and the 20s
-         * auto-cancel are owned by picker_set()/picker_timeout (driven by the
-         * &picker behavior); the handler just renders. */
+        /* Solid both. Entry/exit and the 20s auto-cancel are owned by
+         * picker_set()/picker_timeout (driven by the position listener); the
+         * handler just renders. */
         set_leds(true, true);
         return;
 
@@ -270,7 +273,7 @@ static void picker_set(bool on) {
     poke();
 }
 
-void filco_picker_toggle(void) { picker_set(!v_menu); }
+static void picker_toggle(void) { picker_set(!v_menu); }
 
 static void picker_timeout_handler(struct k_work *work) {
     ARG_UNUSED(work);
@@ -362,6 +365,13 @@ static int position_cb(const zmk_event_t *eh) {
         }
         if (profile >= 0) {
             zmk_ble_prof_select(profile);
+            /* Re-selecting the already-connected profile fires no BLE event,
+             * so flash success here too (the original flashes 3x even when the
+             * chosen profile is the current, already-connected one). */
+            if (zmk_ble_active_profile_index() == profile &&
+                zmk_ble_active_profile_is_connected()) {
+                v_success = true;
+            }
             picker_set(false); /* select + exit */
             return ZMK_EV_EVENT_CAPTURED;
         }
@@ -370,7 +380,7 @@ static int position_cb(const zmk_event_t *eh) {
     if (ev->position == FN_POSITION) {
         zmk_mod_flags_t mods = zmk_hid_get_explicit_mods();
         if ((mods & (MOD_LCTL | MOD_RCTL)) && (mods & (MOD_LALT | MOD_RALT))) {
-            filco_picker_toggle();
+            picker_toggle();
         }
     }
     return ZMK_EV_EVENT_BUBBLE;

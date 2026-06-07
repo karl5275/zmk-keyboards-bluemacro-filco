@@ -2,4 +2,3 @@ name: zmk-keyboards-bluemacro-filco
 build:
   settings:
     board_root: .
-    dts_root: .

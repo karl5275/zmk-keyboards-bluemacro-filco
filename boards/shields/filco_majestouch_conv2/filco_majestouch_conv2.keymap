@@ -35,33 +35,6 @@
 
             label = "DIP1_GATE";
         };
-
-        // Pick a BT profile, then exit the picker (&picker toggles it off,
-        // force-unlocking layer 2) so the connecting/advertising LEDs show.
-        bt_pick_0: bt_pick_0 {
-            compatible = "zmk,behavior-macro";
-            #binding-cells = <0>;
-            bindings = <&bt BT_SEL 0>, <&picker>;
-            label = "BT_PICK_0";
-        };
-        bt_pick_1: bt_pick_1 {
-            compatible = "zmk,behavior-macro";
-            #binding-cells = <0>;
-            bindings = <&bt BT_SEL 1>, <&picker>;
-            label = "BT_PICK_1";
-        };
-        bt_pick_2: bt_pick_2 {
-            compatible = "zmk,behavior-macro";
-            #binding-cells = <0>;
-            bindings = <&bt BT_SEL 2>, <&picker>;
-            label = "BT_PICK_2";
-        };
-        bt_pick_3: bt_pick_3 {
-            compatible = "zmk,behavior-macro";
-            #binding-cells = <0>;
-            bindings = <&bt BT_SEL 3>, <&picker>;
-            label = "BT_PICK_3";
-        };
     };
 
     behaviors {
@@ -76,14 +49,6 @@
             label = "TOGG_OFF";
             #binding-cells = <1>;
             toggle-mode = "off";
-        };
-
-        // Firmware-driven BT picker toggle (see behavior_bt_picker.c +
-        // indicator_leds.c). Used by the Ctrl+Alt+Fn combo, the profile macros
-        // (to exit after selecting), and ESC on the picker layer (to cancel).
-        picker: picker {
-            compatible = "zmk,behavior-bt-picker";
-            #binding-cells = <0>;
         };
     };
 
@@ -116,16 +81,17 @@
             >;
         };
 
-        bt_picker_layer {
-            display-name = "BT";
+        // Free/empty layer (was the BT picker layer; the picker is now done
+        // entirely in firmware, so no layer is needed).
+        layer_2 {
             bindings = <
-&picker  &none       &none       &none       &none       &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none
-&none   &bt_pick_0  &bt_pick_1  &bt_pick_2  &bt_pick_3  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none
-&none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none
-&none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none
-&none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none
-&none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none
-&none  &none  &none  &none
+&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans  &trans  &trans
             >;
         };
 
