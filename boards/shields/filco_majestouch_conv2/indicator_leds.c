@@ -47,8 +47,12 @@
 #include <zmk/events/position_state_changed.h>
 
 /* ──────────── Tunables ──────────────────────────────────────────────── */
-#define MENU_LAYER_INDEX 2     /* dedicated BT picker layer (Ctrl+Alt+Fn)     */
 #define FN_POSITION      98    /* matrix position of the Fn key (&mo 1)       */
+#define POS_ESC          0     /* ESC: cancels the picker                     */
+#define POS_N1           18    /* number-row 1-4: select BT profile 0-3       */
+#define POS_N2           19
+#define POS_N3           20
+#define POS_N4           21
 #define MENU_TIMEOUT_MS  20000 /* auto-cancel the latched picker after this   */
 #define LOW_BATT_PCT     10    /* red pulses at or below this state-of-charge */
 
@@ -245,14 +249,13 @@ static void indicator_work_handler(struct k_work *work) {
 
 static inline void poke(void) { k_work_reschedule(&indicator_work, K_NO_WAIT); }
 
-/* ──────────── Picker control (driven by the &picker behavior) ──────────── */
-/* behavior_bt_picker.c calls filco_picker_toggle() when the Ctrl+Alt+Fn combo
- * fires, when a profile is selected, and on ESC. The combo invokes the behavior
- * on the SAME path that resolves the picker layer's keys, so this is reliable
- * (no polling / layer-event guesswork). picker_set() owns the menu flag, the
- * picker-layer lock (so 1-4 resolve and it latches past chord release), and the
- * 20s auto-cancel. Layer ops from these contexts mirror ZMK's own sticky-key
- * timer (behavior + system-workqueue). */
+/* ──────────── Picker control (fully firmware-owned, no keymap layer) ────── */
+/* The whole picker lives in the LED firmware now, because layer-based selection
+ * proved unreliable on this board (an externally-locked layer didn't survive
+ * the Fn release - the LED flag latched but the layer did not). position_cb
+ * below detects entry (Fn + Ctrl+Alt), selection (1-4 -> zmk_ble_prof_select),
+ * and cancel (ESC). picker_set() owns the LED menu flag and the 20s auto-cancel
+ * - both keyed on v_menu, so the LED and the function can't decouple. */
 static void picker_set(bool on) {
     if (on == v_menu) {
         return;
@@ -260,10 +263,8 @@ static void picker_set(bool on) {
     v_menu = on;
     if (on) {
         set_leds(true, true); /* render now, independent of the work handler */
-        zmk_keymap_layer_activate(MENU_LAYER_INDEX, true);
         k_work_reschedule(&picker_timeout, K_MSEC(MENU_TIMEOUT_MS));
     } else {
-        zmk_keymap_layer_deactivate(MENU_LAYER_INDEX, true);
         k_work_cancel_delayable(&picker_timeout);
     }
     poke();
@@ -332,21 +333,47 @@ static int activity_cb(const zmk_event_t *eh) {
 ZMK_LISTENER(ind_activity, activity_cb);
 ZMK_SUBSCRIPTION(ind_activity, zmk_activity_state_changed);
 
-/* ──────────── Picker entry: firmware-observed Ctrl+Alt+Fn (no combo) ────── */
-/* No combo, so Ctrl/Alt are NEVER captured -> zero latency (Ctrl+click works)
- * and no timing window. When Fn (which still also acts as its momentary layer)
- * is pressed while Ctrl+Alt are held, toggle the picker. Ctrl/Alt reach the
- * host during the gesture, which is harmless. Position events for Fn are not
- * captured by any combo, so this listener reliably sees them. */
+/* ──────────── Picker: firmware-observed gesture + selection (no combo) ──── */
+/* ENTRY: Fn pressed while Ctrl+Alt held. No combo, so Ctrl/Alt are never
+ * captured -> zero latency (Ctrl+click works) and no timing window; they reach
+ * the host during the gesture (harmless).
+ * SELECTION/CANCEL: while the picker is latched, 1-4 pick a BT profile and ESC
+ * cancels, done in firmware (no layer needed). We return CAPTURED to try to
+ * stop the key also typing; that only works if this listener runs before the
+ * keymap (link order), so a stray digit is possible - the selection itself
+ * always registers. */
 static int position_cb(const zmk_event_t *eh) {
     const struct zmk_position_state_changed *ev = as_zmk_position_state_changed(eh);
-    if (ev && ev->state && ev->position == FN_POSITION) {
+    if (!ev || !ev->state) {
+        return ZMK_EV_EVENT_BUBBLE;
+    }
+
+    if (v_menu) {
+        int profile = -1;
+        switch (ev->position) {
+        case POS_N1: profile = 0; break;
+        case POS_N2: profile = 1; break;
+        case POS_N3: profile = 2; break;
+        case POS_N4: profile = 3; break;
+        case POS_ESC:
+            picker_set(false); /* cancel */
+            return ZMK_EV_EVENT_CAPTURED;
+        default: break;
+        }
+        if (profile >= 0) {
+            zmk_ble_prof_select(profile);
+            picker_set(false); /* select + exit */
+            return ZMK_EV_EVENT_CAPTURED;
+        }
+    }
+
+    if (ev->position == FN_POSITION) {
         zmk_mod_flags_t mods = zmk_hid_get_explicit_mods();
         if ((mods & (MOD_LCTL | MOD_RCTL)) && (mods & (MOD_LALT | MOD_RALT))) {
             filco_picker_toggle();
         }
     }
-    return 0;
+    return ZMK_EV_EVENT_BUBBLE;
 }
 ZMK_LISTENER(ind_position, position_cb);
 ZMK_SUBSCRIPTION(ind_position, zmk_position_state_changed);
