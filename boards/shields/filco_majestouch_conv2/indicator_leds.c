@@ -59,6 +59,10 @@
 #define POS_N5           22    /* 5: toggle output transport (BLE <-> USB)    */
 #define MENU_TIMEOUT_MS  20000 /* auto-cancel the latched picker after this   */
 #define LOW_BATT_PCT     10    /* red pulses at or below this state-of-charge */
+/* After a deliberate BT action (picker entry / profile switch) show the
+ * connecting/advertising blink even on USB for this long; outside it, passive
+ * advertising is hidden on USB so it doesn't mask the Caps/Num lock LEDs. */
+#define BT_USER_WINDOW_MS (CONNECTING_MS + 5000)
 
 #define CONNECTING_MS    4000  /* alternate this long while reconnecting      */
 #define ADV_TIMEOUT_MS   60000 /* blue blinks this long while advertising     */
@@ -90,6 +94,9 @@ static volatile bool v_success;    /* one-shot: connection just succeeded     */
 static volatile zmk_hid_indicators_t v_indicators; /* last HID lock state     */
 
 static bool prev_connected;        /* edge detector for v_success            */
+/* k_uptime of the last deliberate BT action; init "expired" so passive
+ * advertising right after boot is hidden on USB. */
+static volatile int64_t bt_user_action_at = -BT_USER_WINDOW_MS;
 
 /* ──────────── Animation state (handler-owned) ──────────────────────────── */
 enum ind_mode {
@@ -132,6 +139,12 @@ static void render_locks(void) {
     set_leds(num, caps);
 }
 
+/* True only for a short window after a deliberate BT action, so the passive
+ * advertising/reconnect blink can show on USB just after the user acts. */
+static inline bool bt_user_window(int64_t now) {
+    return (now - bt_user_action_at) < BT_USER_WINDOW_MS;
+}
+
 /* Decide which mode the current inputs call for. Pure function of inputs +
  * elapsed time; earlier checks win. */
 static enum ind_mode target_mode(int64_t now) {
@@ -148,7 +161,10 @@ static enum ind_mode target_mode(int64_t now) {
     if (v_success || (cur_mode == M_SUCCESS && step < 2 * SUCCESS_FLASHES)) {
         return M_SUCCESS; /* success flash */
     }
-    if (!v_connected) {
+    /* Show the passive advertising/reconnect blink on BLE always, but on USB
+     * only briefly after a deliberate BT action -- so post-boot advertising
+     * doesn't sit blinking over the Caps/Num lock LEDs while wired. */
+    if (!v_connected && (!v_usb_mode || bt_user_window(now))) {
         if (v_open) {
             /* Advertising for a new pairing; give up after the timeout. */
             if (!(cur_mode == M_ADVERTISING && (now - mode_start) >= ADV_TIMEOUT_MS)) {
@@ -266,6 +282,7 @@ static void picker_set(bool on) {
     }
     v_menu = on;
     if (on) {
+        bt_user_action_at = k_uptime_get(); /* deliberate BT action */
         set_leds(true, true); /* render now, independent of the work handler */
         k_work_reschedule(&picker_timeout, K_MSEC(MENU_TIMEOUT_MS));
     } else {
@@ -369,6 +386,7 @@ static int position_cb(const zmk_event_t *eh) {
         default: break;
         }
         if (profile >= 0) {
+            bt_user_action_at = k_uptime_get(); /* deliberate BT action */
             zmk_ble_prof_select(profile);
             /* Re-selecting the already-connected profile fires no BLE event,
              * so flash success here too (the original flashes 3x even when the
