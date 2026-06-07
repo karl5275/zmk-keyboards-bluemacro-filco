@@ -16,9 +16,10 @@
  *   Device picker (Ctrl+Alt+Fn, latched layer) -> blue+red lit solid.
  *   Low battery (<= 10%)                       -> brief red pulse every 10 s.
  *
- * Concurrency model: event listeners ONLY update input flags and then poke a
- * single delayed-work handler. That handler is the only code that touches the
- * LEDs or the animation state, so there is no cross-context race on LED state.
+ * Concurrency model: event listeners and the &picker behavior ONLY update
+ * input flags (and the picker-layer lock) and then poke a single delayed-work
+ * handler. That handler is the only code that touches the LEDs or the
+ * animation state, so there is no cross-context race on LED state.
  *
  * SPDX-License-Identifier: MIT
  */
@@ -44,7 +45,6 @@
 /* ──────────── Tunables ──────────────────────────────────────────────── */
 #define MENU_LAYER_INDEX 2     /* dedicated BT picker layer (Ctrl+Alt+Fn)     */
 #define MENU_TIMEOUT_MS  20000 /* auto-cancel the latched picker after this   */
-#define PICKER_POLL_MS   150   /* how often to poll the picker layer state    */
 #define LOW_BATT_PCT     10    /* red pulses at or below this state-of-charge */
 
 #define CONNECTING_MS    4000  /* alternate this long while reconnecting      */
@@ -96,8 +96,8 @@ static int64_t mode_start;   /* k_uptime_get() when cur_mode was entered      */
 static void indicator_work_handler(struct k_work *work);
 static K_WORK_DELAYABLE_DEFINE(indicator_work, indicator_work_handler);
 
-static void picker_poll_handler(struct k_work *work);
-static K_WORK_DELAYABLE_DEFINE(picker_poll, picker_poll_handler);
+static void picker_timeout_handler(struct k_work *work);
+static K_WORK_DELAYABLE_DEFINE(picker_timeout, picker_timeout_handler);
 
 /* ──────────── Low-level LED helper ─────────────────────────────────────── */
 static inline void set_leds(bool blue, bool red) {
@@ -173,14 +173,6 @@ static void indicator_work_handler(struct k_work *work) {
         if (target == M_SUCCESS) {
             v_success = false; /* consume the edge */
         }
-        if (target == M_MENU) {
-            /* Lock the picker layer so it survives the momentary chord's
-             * release: &mo's non-locking deactivate cannot clear a locked
-             * layer (see set_layer_state in keymap.c), which latches the
-             * picker from the confirmed-working momentary combo. Raw layer
-             * number matches how &mo 2 / &tog 2 reference it. */
-            zmk_keymap_layer_activate(MENU_LAYER_INDEX, true);
-        }
     }
 
     switch (cur_mode) {
@@ -193,18 +185,10 @@ static void indicator_work_handler(struct k_work *work) {
         return; /* event-driven only */
 
     case M_MENU:
+        /* Solid both. Entry/exit, the picker-layer lock, and the 20s
+         * auto-cancel are owned by picker_set()/picker_timeout (driven by the
+         * &picker behavior); the handler just renders. */
         set_leds(true, true);
-        /* Auto-cancel the latched picker after the dwell. Force-deactivate
-         * (locking=true) clears the lock we set on entry. Doing this from a
-         * work handler mirrors how ZMK's own sticky-key timer releases
-         * layers; the layer-off event re-evaluates us to the BLE state. */
-        if (now - mode_start >= MENU_TIMEOUT_MS) {
-            zmk_keymap_layer_deactivate(MENU_LAYER_INDEX, true);
-            v_menu = false;
-            k_work_reschedule(&indicator_work, K_NO_WAIT); /* re-evaluate -> exit */
-        } else {
-            k_work_reschedule(&indicator_work, K_MSEC(MENU_TIMEOUT_MS - (now - mode_start)));
-        }
         return;
 
     case M_SUCCESS: {
@@ -256,6 +240,36 @@ static void indicator_work_handler(struct k_work *work) {
 
 static inline void poke(void) { k_work_reschedule(&indicator_work, K_NO_WAIT); }
 
+/* ──────────── Picker control (driven by the &picker behavior) ──────────── */
+/* behavior_bt_picker.c calls filco_picker_toggle() when the Ctrl+Alt+Fn combo
+ * fires, when a profile is selected, and on ESC. The combo invokes the behavior
+ * on the SAME path that resolves the picker layer's keys, so this is reliable
+ * (no polling / layer-event guesswork). picker_set() owns the menu flag, the
+ * picker-layer lock (so 1-4 resolve and it latches past chord release), and the
+ * 20s auto-cancel. Layer ops from these contexts mirror ZMK's own sticky-key
+ * timer (behavior + system-workqueue). */
+static void picker_set(bool on) {
+    if (on == v_menu) {
+        return;
+    }
+    v_menu = on;
+    if (on) {
+        zmk_keymap_layer_activate(MENU_LAYER_INDEX, true);
+        k_work_reschedule(&picker_timeout, K_MSEC(MENU_TIMEOUT_MS));
+    } else {
+        zmk_keymap_layer_deactivate(MENU_LAYER_INDEX, true);
+        k_work_cancel_delayable(&picker_timeout);
+    }
+    poke();
+}
+
+void filco_picker_toggle(void) { picker_set(!v_menu); }
+
+static void picker_timeout_handler(struct k_work *work) {
+    ARG_UNUSED(work);
+    picker_set(false);
+}
+
 /* ──────────── Event listeners (input only, then poke) ──────────────────── */
 static int endpoint_cb(const zmk_event_t *eh) {
     ARG_UNUSED(eh);
@@ -305,38 +319,12 @@ static int activity_cb(const zmk_event_t *eh) {
     const struct zmk_activity_state_changed *ev = as_zmk_activity_state_changed(eh);
     if (ev) {
         v_sleeping = ev->state == ZMK_ACTIVITY_SLEEP;
-        if (ev->state == ZMK_ACTIVITY_ACTIVE) {
-            /* (Re)start picker polling whenever the keyboard becomes active.
-             * It self-stops when no longer active, to spare idle battery. */
-            k_work_reschedule(&picker_poll, K_MSEC(PICKER_POLL_MS));
-        }
         poke();
     }
     return 0;
 }
 ZMK_LISTENER(ind_activity, activity_cb);
 ZMK_SUBSCRIPTION(ind_activity, zmk_activity_state_changed);
-
-/* Picker detection by polling, not events. The combo CAPTURES the
- * Ctrl+Alt+Fn key events (ZMK_EV_EVENT_CAPTURED in combo.c), so a
- * position/keycode listener never sees them, and layer_state_changed did not
- * reach this module either. So instead we periodically read the live layer
- * state and only wake the main handler when the picker turns on or off. This
- * adds no per-keypress work (no LED flicker while typing). The timer stops
- * naturally in deep sleep (the SoC is off). */
-static void picker_poll_handler(struct k_work *work) {
-    ARG_UNUSED(work);
-    bool now_menu = zmk_keymap_layer_active(MENU_LAYER_INDEX);
-    if (now_menu != v_menu) {
-        v_menu = now_menu;
-        poke();
-    }
-    /* Always keep polling. The combo CAPTURES the Ctrl+Alt+Fn key events, so
-     * no input event reliably signals picker entry to restart a stopped poll
-     * (and the keyboard may have idled while waiting). Deep sleep powers off
-     * the SoC, which stops this; init restarts it on the next boot/wake. */
-    k_work_reschedule(&picker_poll, K_MSEC(PICKER_POLL_MS));
-}
 
 /* ──────────── Init ─────────────────────────────────────────────────────── */
 static int indicator_init(void) {
@@ -349,7 +337,6 @@ static int indicator_init(void) {
     prev_connected = v_connected; /* no spurious success flash at boot */
     v_indicators = zmk_hid_indicators_get_current_profile();
     poke();
-    k_work_reschedule(&picker_poll, K_MSEC(PICKER_POLL_MS));
     return 0;
 }
 SYS_INIT(indicator_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);

@@ -21,13 +21,15 @@
         };
 
         // Original Convertible 2 gesture: Ctrl+Alt+Fn enters the BT device
-        // picker (layer 2). LEFT Ctrl (92) + LEFT Alt (94) + Fn (98). Uses
-        // momentary &mo; the LED firmware locks the layer on entry so it
-        // LATCHES after the chord is released (a combo-fired &tog/&sl would
-        // not hold on this board). Press 1-4 to select+exit, ESC to cancel;
+        // picker. LEFT Ctrl (92) + LEFT Alt (94) + Fn (98). Fires the custom
+        // &picker behavior: the combo invokes it on the SAME path that makes
+        // profile selection work, so detection is reliable (unlike polling /
+        // layer events). &picker toggles the picker in firmware: sets the
+        // solid-both LED flag AND locks picker layer 2 so it latches and 1-4
+        // resolve. Press 1-4 to select+exit, ESC or the chord again to cancel;
         // it also auto-cancels after 20s. timeout-ms is the chord window.
         bt_picker {
-            bindings = <&mo 2>;
+            bindings = <&picker>;
             key-positions = <92 94 98>;
             timeout-ms = <250>;
             layers = <0>;
@@ -43,30 +45,30 @@
             label = "DIP1_GATE";
         };
 
-        // Pick a BT profile, then toggle the picker layer (2) back off so the
-        // connecting/advertising LED feedback can show.
+        // Pick a BT profile, then exit the picker (&picker toggles it off,
+        // force-unlocking layer 2) so the connecting/advertising LEDs show.
         bt_pick_0: bt_pick_0 {
             compatible = "zmk,behavior-macro";
             #binding-cells = <0>;
-            bindings = <&bt BT_SEL 0>, <&tog 2>;
+            bindings = <&bt BT_SEL 0>, <&picker>;
             label = "BT_PICK_0";
         };
         bt_pick_1: bt_pick_1 {
             compatible = "zmk,behavior-macro";
             #binding-cells = <0>;
-            bindings = <&bt BT_SEL 1>, <&tog 2>;
+            bindings = <&bt BT_SEL 1>, <&picker>;
             label = "BT_PICK_1";
         };
         bt_pick_2: bt_pick_2 {
             compatible = "zmk,behavior-macro";
             #binding-cells = <0>;
-            bindings = <&bt BT_SEL 2>, <&tog 2>;
+            bindings = <&bt BT_SEL 2>, <&picker>;
             label = "BT_PICK_2";
         };
         bt_pick_3: bt_pick_3 {
             compatible = "zmk,behavior-macro";
             #binding-cells = <0>;
-            bindings = <&bt BT_SEL 3>, <&tog 2>;
+            bindings = <&bt BT_SEL 3>, <&picker>;
             label = "BT_PICK_3";
         };
     };
@@ -83,6 +85,14 @@
             label = "TOGG_OFF";
             #binding-cells = <1>;
             toggle-mode = "off";
+        };
+
+        // Firmware-driven BT picker toggle (see behavior_bt_picker.c +
+        // indicator_leds.c). Used by the Ctrl+Alt+Fn combo, the profile macros
+        // (to exit after selecting), and ESC on the picker layer (to cancel).
+        picker: picker {
+            compatible = "zmk,behavior-bt-picker";
+            #binding-cells = <0>;
         };
     };
 
@@ -118,7 +128,7 @@
         bt_picker_layer {
             display-name = "BT";
             bindings = <
-&tog 2  &none       &none       &none       &none       &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none
+&picker  &none       &none       &none       &none       &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none
 &none   &bt_pick_0  &bt_pick_1  &bt_pick_2  &bt_pick_3  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none
 &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none
 &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none  &none

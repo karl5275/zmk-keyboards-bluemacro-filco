@@ -1,0 +1,11 @@
+# Copyright (c) 2024 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+description: |
+  Toggle the firmware-driven BT device-picker mode. On press it flips the
+  picker on/off via the indicator LED module (sets the menu flag + locks/
+  unlocks the picker layer). Zero binding cells.
+
+compatible: "zmk,behavior-bt-picker"
+
+include: zero_param.yaml
